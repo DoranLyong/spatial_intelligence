@@ -667,8 +667,8 @@ def to_glb(
             baseColorFactor=np.array([255, 255, 255, 255], dtype=np.uint8),
         )
 
-    # rotate mesh (from z-up to y-up)
-    vertices = vertices @ np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    # -- Comment this: Keep z-up coordinate system (same as PLY)
+    #vertices = vertices @ np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]]) # uncomment => rotate mesh (from z-up to y-up) 
 
     if not with_mesh_postprocess and not with_texture_baking and use_vertex_color:
         mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
