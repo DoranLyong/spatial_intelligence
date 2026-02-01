@@ -107,9 +107,7 @@ Then modify the bash script to use this image instead of `foundationpose:latest`
 
 ```bash
 #-- create conda environment
-mamba create -n foundationpose python=3.10
-
-#-- activate conda environment
+mamba env create -f environments/default.yml
 mamba activate foundationpose
 pip install uv 
 
@@ -122,19 +120,25 @@ mamba install -y conda-forge::boost
 export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH:$CONDA_PREFIX/share/eigen3"
 
 #-- install dependencies
+#  for pytorch/cuda dependencies
+export PIP_EXTRA_INDEX_URL="https://pypi.ngc.nvidia.com https://download.pytorch.org/whl/cu128"
+
 uv pip install -r requirements.txt --index-strategy unsafe-best-match
 
 # Install NVDiffRast
-uv pip install --no-build-isolation --no-cache-dir git+https://github.com/NVlabs/nvdiffrast.git
+unset LD_LIBRARY_PATH  # 시스템 CUDA 경로 제거 (CUDA 확장들이 PyTorch 번들 CUDA로 컴파일)
+export FORCE_CUDA=1
+
+uv pip install "git+https://github.com/NVlabs/nvdiffrast.git@v0.4.0" --no-build-isolation --no-cache-dir
 
 #-- Kaolin (Optional, needed if running model-free setup)
-uv pip install --no-build-isolation --no-cache-dir kaolin==0.18.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.7.0_cu128.html
+uv pip install kaolin==0.18.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.8.0_cu128.html --no-build-isolation --no-cache-dir
+
 
 #-- PyTorch3D build from source 
-git clone https://github.com/facebookresearch/pytorch3d.git
-cd pytorch3d
-FORCE_CUDA=1 MAX_JOBS=8 uv pip install --no-build-isolation .
-cd .. && rm -rf pytorch3d
+uv pip install "pytorch3d @ git+https://github.com/facebookresearch/pytorch3d.git@v0.7.9" --no-build-isolation --no-cache-dir
+
+
 
 #-- Build extensions (fixed the building method for 'mycpp' @20251218)
 #CMAKE_PREFIX_PATH=$CONDA_PREFIX/lib/python3.9/site-packages/pybind11/share/cmake/pybind11 bash build_all_conda.sh
@@ -164,6 +168,7 @@ Feel free to try on other objects (**no need to retrain**) such as driller, by c
 
 For this you first need to download LINEMOD dataset and YCB-Video dataset.
 
+### model-based
 To run model-based version on these two datasets respectively, set the paths based on where you download. The results will be saved to `debug` folder
 ```
 python run_linemod.py --linemod_dir /mnt/9a72c439-d0a7-45e8-8d20-d7a235d02763/DATASET/LINEMOD --use_reconstructed_mesh 0
@@ -171,6 +176,7 @@ python run_linemod.py --linemod_dir /mnt/9a72c439-d0a7-45e8-8d20-d7a235d02763/DA
 python run_ycb_video.py --ycbv_dir /mnt/9a72c439-d0a7-45e8-8d20-d7a235d02763/DATASET/YCB_Video --use_reconstructed_mesh 0
 ```
 
+### model-free
 To run model-free few-shot version. You first need to train Neural Object Field. `ref_view_dir` is based on where you download in the above "Data prepare" section. Set the `dataset` flag to your interested dataset.
 ```
 python bundlesdf/run_nerf.py --ref_view_dir /mnt/9a72c439-d0a7-45e8-8d20-d7a235d02763/DATASET/YCB_Video/bowen_addon/ref_views_16 --dataset ycbv
